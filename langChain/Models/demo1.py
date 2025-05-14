@@ -1,21 +1,33 @@
-from langchain.llms import OpenAI
-import os
+from langchain.prompts import PromptTemplate
+from langchain_community.llms.tongyi import Tongyi
 from dotenv import load_dotenv
+import os
 
 # 加载环境变量
 load_dotenv()
 
-# 初始化通义千问模型（使用 OpenAI 兼容模式）
-llm = OpenAI(
-    model_name="qwen-max",  # 千问模型名
-    temperature=0.7,        # 控制随机性（0-1）
-    max_tokens=200,         # 最大生成token数
-    openai_api_key=os.getenv("DASHSCOPE_API_KEY"),  # 使用环境变量中的API密钥
-    openai_api_base="https://dashscope.aliyuncs.com/compatible-mode/v1"  # 千问OpenAI兼容地址
+llm = Tongyi(
+    model_name="qwen-plus",
+    temperature=0.7
 )
 
-# 示例1：直接调用模型
-result = llm("你好，请介绍一下你自己")
-print("示例1 - 直接调用模型:")
-print(result)
-print("-" * 50) 
+# prompt1
+prompt1 = PromptTemplate(
+    input_variables=["product"],
+    template="为 {product} 写一个简短描述："
+)
+# prompt2
+prompt2 = PromptTemplate(
+    input_variables=["description"],
+    template="这个产品的合理价格是多少？\n描述：{description}"
+)
+
+# 新链式写法
+description_chain = prompt1 | llm
+price_chain = prompt2 | llm
+# 先生成描述
+desc_result = description_chain.invoke({"product": "无线耳机"})
+# 再用描述生成价格
+price_result = price_chain.invoke({"description": desc_result})
+print("描述:", desc_result)
+print("价格:", price_result)
